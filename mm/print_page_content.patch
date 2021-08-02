@@ -1,0 +1,189 @@
+diff --git a/mm/Makefile b/mm/Makefile
+index 26ef77a3883b..26e9dff9be4e 100644
+--- a/mm/Makefile
++++ b/mm/Makefile
+@@ -25,7 +25,7 @@ mmu-y			:= nommu.o
+ mmu-$(CONFIG_MMU)	:= gup.o highmem.o memory.o mincore.o \
+ 			   mlock.o mmap.o mprotect.o mremap.o msync.o \
+ 			   page_vma_mapped.o pagewalk.o pgtable-generic.o \
+-			   rmap.o vmalloc.o
++			   rmap.o vmalloc.o print_page.o
+ 
+ 
+ ifdef CONFIG_CROSS_MEMORY_ATTACH
+diff --git a/mm/memory.c b/mm/memory.c
+index c2011c51f15d..9c17384cfa23 100644
+--- a/mm/memory.c
++++ b/mm/memory.c
+@@ -80,6 +80,8 @@
+ 
+ #include "internal.h"
+ 
++#include "print_page.h"
++
+ #if defined(LAST_CPUPID_NOT_IN_PAGE_FLAGS) && !defined(CONFIG_COMPILE_TEST)
+ #warning Unfortunate NUMA and NUMA Balancing config, growing page-frame for last_cpupid.
+ #endif
+@@ -1810,8 +1812,11 @@ static int insert_pfn(struct vm_area_struct *vma, unsigned long addr,
+ 			}
+ 			entry = pte_mkyoung(*pte);
+ 			entry = maybe_mkwrite(pte_mkdirty(entry), vma);
+-			if (ptep_set_access_flags(vma, addr, pte, entry, 1))
++			if (ptep_set_access_flags(vma, addr, pte, entry, 1)) {
++				aa_page_pte_to_tlb(*pte, __LINE__, __FILE__, __func__);
++				ba_page_pte_to_tlb(*pte, __LINE__, __FILE__, __func__);
+ 				update_mmu_cache(vma, addr, pte);
++			}
+ 		}
+ 		goto out_unlock;
+ 	}
+@@ -1828,6 +1833,7 @@ static int insert_pfn(struct vm_area_struct *vma, unsigned long addr,
+ 	}
+ 
+ 	set_pte_at(mm, addr, pte, entry);
++	//ba_page_pte_to_tlb(*pte, __LINE__, __FILE__, __func__);
+ 	update_mmu_cache(vma, addr, pte); /* XXX: why not for insert_page? */
+ 
+ 	retval = 0;
+@@ -2395,8 +2401,11 @@ static inline bool cow_user_page(struct page *dst, struct page *src,
+ 		}
+ 
+ 		entry = pte_mkyoung(vmf->orig_pte);
+-		if (ptep_set_access_flags(vma, addr, vmf->pte, entry, 0))
++		if (ptep_set_access_flags(vma, addr, vmf->pte, entry, 0)) {
++			aa_page_pte_to_tlb(*(vmf->pte), __LINE__, __FILE__, __func__);
++			ba_page_pte_to_tlb(*(vmf->pte), __LINE__, __FILE__, __func__);
+ 			update_mmu_cache(vma, addr, vmf->pte);
++		}
+ 	}
+ 
+ 	/*
+@@ -2549,8 +2558,11 @@ static inline void wp_page_reuse(struct vm_fault *vmf)
+ 	flush_cache_page(vma, vmf->address, pte_pfn(vmf->orig_pte));
+ 	entry = pte_mkyoung(vmf->orig_pte);
+ 	entry = maybe_mkwrite(pte_mkdirty(entry), vma);
+-	if (ptep_set_access_flags(vma, vmf->address, vmf->pte, entry, 1))
++	if (ptep_set_access_flags(vma, vmf->address, vmf->pte, entry, 1)) {
++		aa_page_pte_to_tlb(*(vmf->pte), __LINE__, __FILE__, __func__);
++		ba_page_pte_to_tlb(*(vmf->pte), __LINE__, __FILE__, __func__);
+ 		update_mmu_cache(vma, vmf->address, vmf->pte);
++	}
+ 	pte_unmap_unlock(vmf->pte, vmf->ptl);
+ }
+ 
+@@ -2650,6 +2662,8 @@ static vm_fault_t wp_page_copy(struct vm_fault *vmf)
+ 		 * new page to be mapped directly into the secondary page table.
+ 		 */
+ 		set_pte_at_notify(mm, vmf->address, vmf->pte, entry);
++		aa_page_pte_to_tlb(*(vmf->pte), __LINE__, __FILE__, __func__);
++		ba_page_pte_to_tlb(*(vmf->pte), __LINE__, __FILE__, __func__);
+ 		update_mmu_cache(vma, vmf->address, vmf->pte);
+ 		if (old_page) {
+ 			/*
+@@ -3192,6 +3206,8 @@ vm_fault_t do_swap_page(struct vm_fault *vmf)
+ 	}
+ 
+ 	/* No need to invalidate - it was non-present before */
++	aa_page_pte_to_tlb(*(vmf->pte), __LINE__, __FILE__, __func__);
++	ba_page_pte_to_tlb(*(vmf->pte), __LINE__, __FILE__, __func__);
+ 	update_mmu_cache(vma, vmf->address, vmf->pte);
+ unlock:
+ 	pte_unmap_unlock(vmf->pte, vmf->ptl);
+@@ -3312,6 +3328,8 @@ static vm_fault_t do_anonymous_page(struct vm_fault *vmf)
+ 	set_pte_at(vma->vm_mm, vmf->address, vmf->pte, entry);
+ 
+ 	/* No need to invalidate - it was non-present before */
++	aa_page_pte_to_tlb(*(vmf->pte), __LINE__, __FILE__, __func__);
++	ba_page_pte_to_tlb(*(vmf->pte), __LINE__, __FILE__, __func__);
+ 	update_mmu_cache(vma, vmf->address, vmf->pte);
+ unlock:
+ 	pte_unmap_unlock(vmf->pte, vmf->ptl);
+@@ -3590,6 +3608,8 @@ vm_fault_t alloc_set_pte(struct vm_fault *vmf, struct mem_cgroup *memcg,
+ 	set_pte_at(vma->vm_mm, vmf->address, vmf->pte, entry);
+ 
+ 	/* no need to invalidate: a not-present page won't be cached */
++	aa_page_pte_to_tlb(*(vmf->pte), __LINE__, __FILE__, __func__);
++	ba_page_pte_to_tlb(*(vmf->pte), __LINE__, __FILE__, __func__);
+ 	update_mmu_cache(vma, vmf->address, vmf->pte);
+ 
+ 	return 0;
+@@ -3963,6 +3983,8 @@ static vm_fault_t do_numa_page(struct vm_fault *vmf)
+ 	if (was_writable)
+ 		pte = pte_mkwrite(pte);
+ 	ptep_modify_prot_commit(vma->vm_mm, vmf->address, vmf->pte, pte);
++	aa_page_pte_to_tlb(*(vmf->pte), __LINE__, __FILE__, __func__);
++	ba_page_pte_to_tlb(*(vmf->pte), __LINE__, __FILE__, __func__);
+ 	update_mmu_cache(vma, vmf->address, vmf->pte);
+ 
+ 	page = vm_normal_page(vma, vmf->address, pte);
+@@ -4152,7 +4174,9 @@ static vm_fault_t handle_pte_fault(struct vm_fault *vmf)
+ 	}
+ 	entry = pte_mkyoung(entry);
+ 	if (ptep_set_access_flags(vmf->vma, vmf->address, vmf->pte, entry,
+-				vmf->flags & FAULT_FLAG_WRITE)) {
++							  vmf->flags & FAULT_FLAG_WRITE)) {
++		aa_page_pte_to_tlb(*(vmf->pte), __LINE__, __FILE__, __func__);
++		ba_page_pte_to_tlb(*(vmf->pte), __LINE__, __FILE__, __func__);
+ 		update_mmu_cache(vmf->vma, vmf->address, vmf->pte);
+ 	} else {
+ 		/*
+diff --git a/mm/print_page.c b/mm/print_page.c
+deleted file mode 100644
+index 962e8fb36486..000000000000
+--- a/mm/print_page.c
++++ /dev/null
+@@ -1,45 +0,0 @@
+-#include <linux/mm.h>
+-
+-int print_ba_page(struct page *pg, int line, char *file, const char *func)
+-{
+-	int res = 0;
+-	char *ptr = (char*)page_address(pg);
+-
+-	if (ptr && *ptr == 'b' && *(ptr + 1) == 'a' && *(ptr + 2) == 'a' &&
+-		*(ptr + 3) == 'a' && *(ptr + 4) == 'a' && *(ptr + 5) == 'a') {
+-		res = 1;
+-		printk("ba page found, line: %d file: %s func: %s", line, file, func);
+-	}
+-
+-	return res;
+-}
+-
+-int print_aa_page(struct page *pg, int line, char *file, const char *func)
+-{
+-	int res = 0;
+-	char *ptr = (char*)page_address(pg);
+-
+-	if (ptr && *ptr == 'a' && *(ptr + 1) == 'a' && *(ptr + 2) == 'a' &&
+-		*(ptr + 3) == 'a' && *(ptr + 4) == 'a' && *(ptr + 5) == 'a') {
+-		res = 1;
+-		printk("aa page found, line: %d file: %s func: %s", line, file, func);
+-	}
+-
+-	return res;
+-}
+-
+-void ba_page_pte_to_tlb(pte_t pte, int line, char *file, const char *func)
+-{
+-	struct page *pg = pte_page(pte);
+-
+-	if (print_ba_page(pg, line, file, func))
+-		printk("update_mmu_cache ba page, pte: %lx", pte_val(pte));
+-}
+-
+-void aa_page_pte_to_tlb(pte_t pte, int line, char *file, const char *func)
+-{
+-	struct page *pg = pte_page(pte);
+-
+-	if (print_aa_page(pg, line, file, func))
+-		printk("update_mmu_cache aa page, pte: %lx", pte_val(pte));
+-}
+diff --git a/mm/print_page.h b/mm/print_page.h
+deleted file mode 100644
+index 73e178418644..000000000000
+--- a/mm/print_page.h
++++ /dev/null
+@@ -1,3 +0,0 @@
+-int  print_ba_page(struct page *pg, int line, char *file, const char *func);
+-void ba_page_pte_to_tlb(pte_t pte, int line, char *file, const char *func);
+-void aa_page_pte_to_tlb(pte_t pte, int line, char *file, const char *func);
