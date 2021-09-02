@@ -4,3 +4,4 @@
 # when system startup. if you don't need just
 # leave it
 
+dmesg > $HOME/pqy.log.dmesg

@@ -13,6 +13,6 @@ do
 	username=`echo $line |awk '{print $1}'`
 	ip=`echo $line |awk '{print $2}'`
 	passwd=`echo $line |awk '{print $3}'`
-	./compile_install_same_arch.sh $username $ip $2 $3 $4 $passwd $cnt $tot
+	./compile_install_same_arch.sh $username $ip $2 $3 $4 $passwd $cnt $tot &
 	cnt=$(($cnt+1))
 done < "$input"
