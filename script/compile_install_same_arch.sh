@@ -7,6 +7,8 @@ echo $4 #def config
 echo $5 #threads
 echo $6 #password
 
+sudo yum install expect -y
+sudo apt install expect -y
 pwd_script=`pwd`
 cd $3
 make $4
@@ -19,7 +21,7 @@ tar -cvzf $3/mod.tar.gz 4.19.190-pqy
 
 expect << __EOF
 set timeout 30
-spawn scp $3/vmlinuz $3/vmlinux $3/mod.tar.gz $1@$2:~
+spawn scp -o StrictHostKeyChecking=no $3/vmlinuz $3/vmlinux $3/mod.tar.gz ./startup.sh $1@$2:~
 expect "*password:"
 send "$6\r"
 expect of

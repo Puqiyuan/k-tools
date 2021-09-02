@@ -7,6 +7,6 @@ while true; do
 	if [[ ! -z "$res" ]]
 	then
 		dmesg > log.txt
-		exit
+		break
 	fi
 done
