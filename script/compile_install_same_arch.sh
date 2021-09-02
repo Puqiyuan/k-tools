@@ -25,5 +25,6 @@ send "$6\r"
 expect of
 __EOF
 
+rm $3/mod $3/mod.tar.gz -rf
 cd $pwd_script
 ./install_same_arch $1 $2 $6
