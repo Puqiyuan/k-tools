@@ -22,7 +22,7 @@ tar -cvzf $3/mod.tar.gz 4.19.190-pqy
 cd
 expect << __EOF
 set timeout 30
-spawn scp -o StrictHostKeyChecking=no $3/vmlinuz $3/vmlinux $3/mod.tar.gz ~/startup.sh $1@$2:~
+spawn scp -o StrictHostKeyChecking=no $3/vmlinuz $3/vmlinux $3/mod.tar.gz ~/kernel_debug_tools/script/startup.sh $1@$2:~
 expect "*password:"
 send "$6\r"
 expect of
