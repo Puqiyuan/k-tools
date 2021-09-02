@@ -19,9 +19,10 @@ make modules_install INSTALL_MOD_PATH=$3/mod -j32
 cd $3/mod/lib/modules/
 tar -cvzf $3/mod.tar.gz 4.19.190-pqy
 
+cd
 expect << __EOF
 set timeout 30
-spawn scp -o StrictHostKeyChecking=no $3/vmlinuz $3/vmlinux $3/mod.tar.gz ./startup.sh $1@$2:~
+spawn scp -o StrictHostKeyChecking=no $3/vmlinuz $3/vmlinux $3/mod.tar.gz ~/startup.sh $1@$2:~
 expect "*password:"
 send "$6\r"
 expect of
