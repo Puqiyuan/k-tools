@@ -6,7 +6,8 @@ echo $3 #the string you want to grep
 echo $4 #username
 echo $5 #passwd
 
-./grep_string_from_dmesg.sh $3
+cd $HOME/kernel_debug_tools/script/
+./grep_string_from_dmesg.sh "$3"
 
 filename=`date +%F`+`date +%H`-`date +%M`-`date +%S`
 cp log.txt $filename

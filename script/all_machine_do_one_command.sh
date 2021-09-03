@@ -9,5 +9,5 @@ do
         ip=`echo $line |awk '{print $2}'`
         passwd=`echo $line |awk '{print $3}'`
 
-		./do_one_command $username $ip $passwd "$2" &
+		./do_one_command $username $ip $passwd "$2"
 done < "$1"
