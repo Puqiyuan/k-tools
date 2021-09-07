@@ -42,7 +42,8 @@ __EOF
 
 if [[ "$7" -eq "$8" ]]
 then
-	rm $3/mod $3/mod.tar.gz -rf
+	#rm $3/mod $3/mod.tar.gz -rf
+	echo nothing
 fi
 cd $pwd_script
 ./install_same_arch $1 $2 $6

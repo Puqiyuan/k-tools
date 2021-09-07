@@ -7,6 +7,7 @@ while true; do
 	if [[ ! -z "$res" ]]
 	then
 		dmesg > log.txt
+		sudo dmesg -C
 		break
 	fi
 done
