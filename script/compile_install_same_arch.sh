@@ -21,7 +21,7 @@ pwd_script=`pwd`
 if [[ "$7" -eq 1 ]];
 then
 	cd $3
-	make $4
+	#make $4
 	make -j$5 LOCALVERSION=-pqy
 	rm -rf $3/mod
 	mkdir $3/mod
@@ -34,7 +34,7 @@ cd
 
 expect << __EOF
 set timeout 30
-spawn scp -r -o StrictHostKeyChecking=no $HOME/kernel_debug_tools $3/vmlinuz $3/vmlinux $3/mod.tar.gz $HOME/kernel_debug_tools/script/startup.sh $1@$2:~
+spawn scp -r -o StrictHostKeyChecking=no $3/vmlinuz $3/vmlinux $3/mod.tar.gz $HOME/kernel_debug_tools/script/startup.sh $1@$2:~
 expect "*password:"
 send "$6\r"
 expect of

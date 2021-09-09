@@ -9,7 +9,8 @@ echo $5 #passwd
 cd $HOME/kernel_debug_tools/script/
 ./grep_string_from_dmesg.sh "$3"
 
-filename=`date +%F`+`date +%H`-`date +%M`-`date +%S`
+#filename=`date +%F`+`date +%H`-`date +%M`-`date +%S`
+filename=`date +%F`+`date +%H`-`date +%M`-`date +%S`+`/sbin/ifconfig |grep inet |head -1 |awk '{print $2}'`
 cp log.txt $filename
 ip addr >> $filename
 sync
