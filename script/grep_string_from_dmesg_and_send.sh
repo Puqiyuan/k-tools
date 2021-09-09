@@ -16,7 +16,7 @@ ip addr >> $filename
 sync
 rm log.txt
 expect << __EOF
-set timeout 30
+set timeout 600
 spawn scp -o StrictHostKeyChecking=no $filename $4@$1:$2
 expect "*password:"
 send "$5\r"
