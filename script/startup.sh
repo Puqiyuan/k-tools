@@ -1,10 +1,11 @@
 #!/bin/bash
-
 export DISPLAY=:0
 $HOME/kernel_debug_tools/script/grep_string_from_dmesg_and_send.sh 10.20.42.191 /home/pqy7172/debug_log "sending SIGSEGV to" pqy7172 1 >/dev/null 2>&1 &
-sudo su
-cd /opt/ltp/testscripts/
-/usr/bin/deepin-terminal -e ltpstress.sh -n -t 24
+/usr/bin/deepin-terminal -e /opt/ltp/testscripts/ltpstress.sh -n -t 24
+#sudo su
+#cd /opt/ltp/testscripts/
+#/usr/bin/deepin-terminal -e ltpstress.sh -n -t 24
+#exit
 #/bin/bash ltpstress.sh -n -t 24 -S -p >/dev/null 2>&1 &
 #/bin/bash ltpstress.sh -n -t 24 -S -p >/home/loongson/output.txt 2>&1 &
 # this is a startup scri[]pt you want to execute
