@@ -20,3 +20,4 @@ do
 	fi
 	cnt=$(($cnt+1))
 done < "$input"
+date

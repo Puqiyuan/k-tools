@@ -1,5 +1,4 @@
-# you need first ssh target machine to use this script
-# and set no need root password for username
+#set no need root password for username
 echo $1 #username
 echo $2 #ip
 echo $3 #kernel dir
