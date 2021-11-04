@@ -1,5 +1,4 @@
-# you need first ssh target machine to use this script
-# and set no need root password for username
+#set no need root password for username
 echo $1 #username
 echo $2 #ip
 echo $3 #kernel dir
@@ -8,6 +7,12 @@ echo $5 #threads
 echo $6 #password
 echo $7 #how many times compile
 echo $8 #tot times
+
+version_str=-pqy
+
+if [ "$#" -eq 9 ]; then
+    version_str=-$9
+fi
 
 res=`expect -v |grep bash`
 if [[ ! -z "$res" ]]
@@ -18,17 +23,24 @@ fi
 
 pwd_script=`pwd`
 
-if [[ "$7" -eq 1 ]];
-then
+#if the code is changed, it needs to be re-compile
+#if [[ "$7" -eq 1 ]];
+#then
 	cd $3
-	make $4
-	make -j$5 LOCALVERSION=-pqy
+	#make $4
+	make -j$5 LOCALVERSION=$version_str
 	rm -rf $3/mod
 	mkdir $3/mod
 	make modules_install INSTALL_MOD_PATH=$3/mod -j32
 	cd $3/mod/lib/modules/
-	tar -cvzf $3/mod.tar.gz 4.19.190-pqy
-fi
+	if [ "$#" -eq 9 ]; then
+	    tar -cvzf $3/mod.tar.gz 4.19.190-$9
+	fi
+
+	if [ "$#" -eq 8 ]; then
+	    tar -cvzf $3/mod.tar.gz 4.19.190-pqy
+	fi
+#fi
 
 cd
 
