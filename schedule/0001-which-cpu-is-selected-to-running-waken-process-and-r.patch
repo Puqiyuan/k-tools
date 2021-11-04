@@ -1,0 +1,54 @@
+From 40ee6b8fba8c425ffd69db8cf60141597cb17c53 Mon Sep 17 00:00:00 2001
+From: Qiyuan Pu <puqiyuan@loongson.cn>
+Date: Thu, 4 Nov 2021 17:13:42 +0800
+Subject: [PATCH] which cpu is selected to running waken process, and record it
+
+Change-Id: Icf5573559f8f24000b485e583509676ff625fd2a
+---
+ kernel/sched/core.c | 29 +++++++++++++++++++++++++++++
+ 1 file changed, 29 insertions(+)
+
+diff --git a/kernel/sched/core.c b/kernel/sched/core.c
+index 013b1c6cb4ed..1d84bba71d4c 100644
+--- a/kernel/sched/core.c
++++ b/kernel/sched/core.c
+@@ -2034,7 +2034,36 @@ try_to_wake_up(struct task_struct *p, unsigned int state, int wake_flags)
+ 		atomic_dec(&task_rq(p)->nr_iowait);
+ 	}
+ 
++	static unsigned long init_jiff;
++	static int cpus_info[8192][4], flag, output, i;
++	if (strcmp(p->comm, "fstime") == 0 && !flag) {
++		flag = 1;
++		for (i = 0; i < 8192; ++i)
++			cpus_info[i][3] = -1;
++		init_jiff = jiffies;
++	}
+ 	cpu = select_task_rq(p, p->wake_cpu, SD_BALANCE_WAKE, wake_flags);
++	if (strcmp(p->comm, "fstime") == 0) {
++		if (cpus_info[p->pid][3] != -1) {
++			if (cpu == cpus_info[p->pid][3])
++				cpus_info[p->pid][0]++;
++			else {
++				if (cpu / 4 == cpus_info[p->pid][3] / 4)
++					cpus_info[p->pid][1]++;
++				else
++					cpus_info[p->pid][2]++;
++			}
++		}
++		cpus_info[p->pid][3] = cpu;
++	}
++	if (jiffies > init_jiff + 180 * 250  && !output && init_jiff != 0) {
++		output = 1;
++		for (i = 0; i < 8192; ++i) {
++			if (cpus_info[i][0] != 0)
++				printk("pqy data: %d %d %d\n", cpus_info[i][0], cpus_info[i][1], cpus_info[i][2]);
++		}
++	}
++
+ 	if (task_cpu(p) != cpu) {
+ 		wake_flags |= WF_MIGRATED;
+ 		set_task_cpu(p, cpu);
+-- 
+2.20.1
+
