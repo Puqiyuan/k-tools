@@ -1,0 +1,75 @@
+From bb325dfe45aa04d32d9d172dfd976e440488323f Mon Sep 17 00:00:00 2001
+From: Qiyuan Pu <puqiyuan@loongson.cn>
+Date: Mon, 8 Nov 2021 14:45:27 +0800
+Subject: [PATCH] count where return cpu
+
+Change-Id: I836cbb8907e3c94ccc3eb71a76446069c172b151
+Signed-off-by: Qiyuan Pu <puqiyuan@loongson.cn>
+---
+ kernel/sched/fair.c | 22 ++++++++++++++++++++--
+ 1 file changed, 20 insertions(+), 2 deletions(-)
+
+diff --git a/kernel/sched/fair.c b/kernel/sched/fair.c
+index 11e6732f8b3f..252caf4af1e5 100644
+--- a/kernel/sched/fair.c
++++ b/kernel/sched/fair.c
+@@ -6430,6 +6430,7 @@ static int wake_cap(struct task_struct *p, int cpu, int prev_cpu)
+  *
+  * preempt must be disabled.
+  */
++static char *target_task = "fstime";
+ static int
+ select_task_rq_fair(struct task_struct *p, int prev_cpu, int sd_flag, int wake_flags)
+ {
+@@ -6438,14 +6439,28 @@ select_task_rq_fair(struct task_struct *p, int prev_cpu, int sd_flag, int wake_f
+ 	int new_cpu = prev_cpu;
+ 	int want_affine = 0;
+ 	int sync = (wake_flags & WF_SYNC) && !(current->flags & PF_EXITING);
++	static unsigned long pos1_cnt, pos2_cnt, pos3_cnt, init_jiff, output, flag;
++	if (strcmp(p->comm, target_task) == 0 && !flag) {
++		flag = 1;
++		init_jiff = jiffies;
++	}
++	if (jiffies > init_jiff + 180 * 250 && !output && init_jiff != 0) {
++		output = 1;
++		printk("cnt1:\t%lu\n", pos1_cnt);
++		printk("cnt2:\t%lu\n", pos2_cnt);
++		printk("cnt3:\t%lu\n", pos3_cnt);
++	}
+ #ifdef __loongarch__
+ 	struct thread_info *thread;
+ #endif
+ 
+ #ifdef __loongarch__
+ 	if ((sd_flag & SD_BALANCE_FORK) && current_thread_info()->will_wait) {
+-		if (cpumask_test_cpu(cpu, &p->cpus_allowed))
++		if (cpumask_test_cpu(cpu, &p->cpus_allowed)) {
++			if (strcmp(p->comm, target_task) == 0)
++				pos1_cnt++;
+ 			return cpu;
++		}
+ 	}
+ #endif
+ 
+@@ -6464,6 +6479,8 @@ select_task_rq_fair(struct task_struct *p, int prev_cpu, int sd_flag, int wake_f
+ 			}
+ 
+ 			if ((p->se.exec_start < (current->se.exec_start + 1000)) && (thread->wakee_times > 80) && (task_thread_info(p)->wakee_times > 80)) {
++				if (strcmp(p->comm, target_task) == 0)
++					pos2_cnt++;
+ 				return cpu;
+ 			}
+ 		}
+@@ -6507,7 +6524,8 @@ select_task_rq_fair(struct task_struct *p, int prev_cpu, int sd_flag, int wake_f
+ 			current->recent_used_cpu = cpu;
+ 	}
+ 	rcu_read_unlock();
+-
++	if (strcmp(p->comm, target_task) == 0)
++		pos3_cnt++;
+ 	return new_cpu;
+ }
+ 
+-- 
+2.20.1
+

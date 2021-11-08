@@ -11,7 +11,7 @@ echo $8 #tot times
 version_str=-pqy
 
 if [ "$#" -eq 9 ]; then
-    version_str=-$9
+    version_str=-pqy-$9
 fi
 
 res=`expect -v |grep bash`
@@ -34,7 +34,7 @@ pwd_script=`pwd`
 	make modules_install INSTALL_MOD_PATH=$3/mod -j32
 	cd $3/mod/lib/modules/
 	if [ "$#" -eq 9 ]; then
-	    tar -cvzf $3/mod.tar.gz 4.19.190-$9
+	    tar -cvzf $3/mod.tar.gz 4.19.190-pqy-$9
 	fi
 
 	if [ "$#" -eq 8 ]; then

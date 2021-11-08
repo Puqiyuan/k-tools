@@ -8,6 +8,6 @@ spawn ssh -o StrictHostKeyChecking=no $username@$ip
 expect "*?assword:*"
 send -- "$password\r"
 sleep 1
-send -- "sudo mv ~/vmlinuz /boot/vmlinuz-pqy; sudo mv ~/vmlinux /boot/vmlinux-pqy; sudo rm /lib/modules/4.19.190-pqy -rf; sudo tar xvf ~/mod.tar.gz -C /lib/modules; sleep 2; sudo reboot\r\n"
+send -- "sudo mv ~/vmlinuz /boot/vmlinuz-pqy; sudo mv ~/vmlinux /boot/vmlinux-pqy; sudo rm /lib/modules/*pqy* -rf; sudo tar xvf ~/mod.tar.gz -C /lib/modules; sleep 2; sudo reboot\r\n"
 send -- "exit\r\n"
 expect eof
