@@ -27,7 +27,7 @@ pwd_script=`pwd`
 #if [[ "$7" -eq 1 ]];
 #then
 	cd $3
-	#make $4
+	make $4
 	make -j$5 LOCALVERSION=$version_str
 	rm -rf $3/mod
 	mkdir $3/mod
