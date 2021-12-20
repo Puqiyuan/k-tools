@@ -1,0 +1,64 @@
+diff --git a/lib/iov_iter.c b/lib/iov_iter.c
+index acd7b97c16f2..6951f3a30067 100644
+--- a/lib/iov_iter.c
++++ b/lib/iov_iter.c
+@@ -139,12 +139,17 @@ static int copyout(void __user *to, const void *from, size_t n)
+ 	return n;
+ }
+ 
++extern struct page *walk_page_table_one_addr(unsigned long addr);
+ static int copyin(void *to, const void __user *from, size_t n)
+ {
++	char *p = to;
+ 	if (access_ok(VERIFY_READ, from, n)) {
+ 		kasan_check_write(to, n);
+ 		n = raw_copy_from_user(to, from, n);
+ 	}
++	if (*p == 'a' && *(p + 1) == 'a' && *(p + 2) == 'a' && *(p + 3) == 'a' &&
++		*(p + 4) == 'a' && *(p + 5) == 'a')
++		printk("uaddr nid: %d\n", page_to_nid(walk_page_table_one_addr((unsigned long)from)));
+ 	return n;
+ }
+ 
+diff --git a/mm/pagewalk.c b/mm/pagewalk.c
+index 3c0930d94a29..a40adf5dc613 100644
+--- a/mm/pagewalk.c
++++ b/mm/pagewalk.c
+@@ -356,3 +356,37 @@ int walk_page_vma(struct vm_area_struct *vma, struct mm_walk *walk)
+ 		return err;
+ 	return __walk_page_range(vma->vm_start, vma->vm_end, walk);
+ }
++
++struct page *walk_page_table_one_addr(unsigned long addr)
++{
++	pgd_t *pgd;
++    pte_t *ptep, pte;
++    pud_t *pud;
++    pmd_t *pmd;
++
++    struct page *page = NULL;
++    struct mm_struct *mm = current->mm;
++
++    pgd = pgd_offset(mm, addr);
++    if (pgd_none(*pgd) || pgd_bad(*pgd))
++        goto out;
++
++    pud = pud_offset(pgd, addr);
++    if (pud_none(*pud) || pud_bad(*pud))
++        goto out;
++
++    pmd = pmd_offset(pud, addr);
++    if (pmd_none(*pmd) || pmd_bad(*pmd))
++        goto out;
++
++    ptep = pte_offset_map(pmd, addr);
++    if (!ptep)
++        goto out;
++    pte = *ptep;
++
++    page = pte_page(pte);
++	pte_unmap(ptep);
++
++ out:
++    return page;
++}
