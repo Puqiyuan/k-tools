@@ -1,0 +1,13 @@
+#!/usr/bin/expect -f
+set username [lindex $argv 0];
+set ip [lindex $argv 1];
+set password [lindex $argv 2];
+
+set timeout 600
+spawn ssh -o StrictHostKeyChecking=no $username@$ip
+expect "*?assword:*"
+send -- "$password\r"
+sleep 1
+send -- "sudo mv ~/vmlinuz /boot/vmlinuz-pqy; sudo rm /lib/modules/*rc* -rf; sudo tar xvf ~/mod.tar.gz -C /lib/modules; sleep 2; sudo reboot\r\n"
+send -- "exit\r\n"
+expect eof
