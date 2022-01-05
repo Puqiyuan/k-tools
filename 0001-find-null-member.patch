@@ -1,0 +1,115 @@
+From 291037cd25b71cb76f5c6e3fd05502eb5d989379 Mon Sep 17 00:00:00 2001
+From: Qiyuan Pu <puqiyuan@loongson.cn>
+Date: Wed, 5 Jan 2022 17:12:56 +0800
+Subject: [PATCH] find null member
+
+Change-Id: Icbffd12f43feb8ecf9bfd9d1e8cb47b5e1959ed7
+---
+ drivers/scsi/qla2xxx/Makefile    |  2 +-
+ drivers/scsi/qla2xxx/qla_debug.c | 28 ++++++++++++++++++++++++++++
+ drivers/scsi/qla2xxx/qla_debug.h |  1 +
+ drivers/scsi/qla2xxx/qla_init.c  | 11 ++++++-----
+ 4 files changed, 36 insertions(+), 6 deletions(-)
+ create mode 100644 drivers/scsi/qla2xxx/qla_debug.c
+ create mode 100644 drivers/scsi/qla2xxx/qla_debug.h
+
+diff --git a/drivers/scsi/qla2xxx/Makefile b/drivers/scsi/qla2xxx/Makefile
+index 17d5bc1cc56b..bdffac14545a 100644
+--- a/drivers/scsi/qla2xxx/Makefile
++++ b/drivers/scsi/qla2xxx/Makefile
+@@ -1,7 +1,7 @@
+ # SPDX-License-Identifier: GPL-2.0
+ qla2xxx-y := qla_os.o qla_init.o qla_mbx.o qla_iocb.o qla_isr.o qla_gs.o \
+ 		qla_dbg.o qla_sup.o qla_attr.o qla_mid.o qla_dfs.o qla_bsg.o \
+-		qla_nx.o qla_mr.o qla_nx2.o qla_target.o qla_tmpl.o qla_nvme.o
++		qla_nx.o qla_mr.o qla_nx2.o qla_target.o qla_tmpl.o qla_nvme.o qla_debug.o
+ 
+ obj-$(CONFIG_SCSI_QLA_FC) += qla2xxx.o
+ obj-$(CONFIG_TCM_QLA2XXX) += tcm_qla2xxx.o
+diff --git a/drivers/scsi/qla2xxx/qla_debug.c b/drivers/scsi/qla2xxx/qla_debug.c
+new file mode 100644
+index 000000000000..df4cbfa7e355
+--- /dev/null
++++ b/drivers/scsi/qla2xxx/qla_debug.c
+@@ -0,0 +1,28 @@
++#include "qla_def.h"
++
++void print_srb_member_addr(srb_t *sp, const char *func, int line, unsigned long timeout)
++{
++	printk("call me func: %s line: %d timeout: %lu\n", func, line, timeout);
++	printk("pqy srb_t: %lx\n", (unsigned long)sp);
++	if (sp) {
++		printk("pqy vha: %lx\n", (unsigned long)sp->vha);
++		if (sp->vha) {
++			printk("pqy hw: %lx\n", (unsigned long)sp->vha->hw);
++			if (sp->vha->hw) {
++				printk("pqy hardware_lock: %lx\n", (unsigned long)(&sp->vha->hw->hardware_lock));
++			}
++		}
++		printk("pqy qpair: %lx\n", (unsigned long)sp->qpair);
++		printk("pqy handle value: %u\n", sp->handle);
++		if (sp->qpair) {
++			printk("pqy req: %lx\n", (unsigned long)sp->qpair->req);
++			if (sp->qpair->req) {
++				printk("pqy outstanding_cmds: %lx\n", (unsigned long)sp->qpair->req->outstanding_cmds);
++			}
++		}
++		printk("pqy iocb_cmd: %lx\n", (unsigned long)&sp->u.iocb_cmd);
++		if (&sp->u.iocb_cmd)
++			printk("pqy timeout: %lx\n", (unsigned long)((&sp->u.iocb_cmd)->timeout));
++	}
++	printk("\n");
++}
+diff --git a/drivers/scsi/qla2xxx/qla_debug.h b/drivers/scsi/qla2xxx/qla_debug.h
+new file mode 100644
+index 000000000000..e7e438368b28
+--- /dev/null
++++ b/drivers/scsi/qla2xxx/qla_debug.h
+@@ -0,0 +1 @@
++void print_srb_member_addr(srb_t *sp, const char *func, int line, unsigned long timeout);
+diff --git a/drivers/scsi/qla2xxx/qla_init.c b/drivers/scsi/qla2xxx/qla_init.c
+index 2ebf4e4e0234..af7eb30b5e57 100644
+--- a/drivers/scsi/qla2xxx/qla_init.c
++++ b/drivers/scsi/qla2xxx/qla_init.c
+@@ -19,7 +19,7 @@
+ 
+ #include <target/target_core_base.h>
+ #include "qla_target.h"
+-
++#include "qla_debug.h"
+ /*
+ *  QLogic ISP2x00 Hardware Support Function Prototypes.
+ */
+@@ -52,6 +52,7 @@ qla2x00_sp_timeout(struct timer_list *t)
+ 	struct srb_iocb *iocb;
+ 	struct req_que *req;
+ 	unsigned long flags;
++	print_srb_member_addr(sp, __func__, __LINE__, 0);
+ 	struct qla_hw_data *ha = sp->vha->hw;
+ 
+ 	WARN_ON_ONCE(irqs_disabled());
+@@ -239,8 +240,8 @@ qla2x00_async_login(struct scsi_qla_host *vha, fc_port_t *fcport,
+ 
+ 	lio = &sp->u.iocb_cmd;
+ 	lio->timeout = qla2x00_async_iocb_timeout;
+-	qla2x00_init_timer(sp, qla2x00_get_async_timeout(vha) + 2);
+-
++	qla2x00_init_timer(sp, qla2x00_get_async_timeout(vha) + 2 - 5);
++	print_srb_member_addr(sp, __func__, __LINE__ - 1, qla2x00_get_async_timeout(vha) + 2 - 5);
+ 	sp->done = qla2x00_async_login_sp_done;
+ 	if (N2N_TOPO(fcport->vha->hw) && fcport_is_bigger(fcport))
+ 		lio->u.logio.flags |= SRB_LOGIN_PRLI_ONLY;
+@@ -1145,8 +1146,8 @@ int qla24xx_async_gpdb(struct scsi_qla_host *vha, fc_port_t *fcport, u8 opt)
+ 
+ 	mbx = &sp->u.iocb_cmd;
+ 	mbx->timeout = qla2x00_async_iocb_timeout;
+-	qla2x00_init_timer(sp, qla2x00_get_async_timeout(vha) + 2);
+-
++	qla2x00_init_timer(sp, qla2x00_get_async_timeout(vha) + 2 - 5);
++	print_srb_member_addr(sp, __func__, __LINE__ - 1, qla2x00_get_async_timeout(vha) + 2 - 5);
+ 	pd = dma_pool_zalloc(ha->s_dma_pool, GFP_KERNEL, &pd_dma);
+ 	if (pd == NULL) {
+ 		ql_log(ql_log_warn, vha, 0xd043,
+-- 
+2.27.0
+
