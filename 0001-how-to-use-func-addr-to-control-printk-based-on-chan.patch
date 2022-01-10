@@ -1,0 +1,70 @@
+From 5b093ca9262e07fc49f778f7b61d48b97a2f6b90 Mon Sep 17 00:00:00 2001
+From: Qiyuan Pu <puqiyuan@loongson.cn>
+Date: Mon, 10 Jan 2022 20:00:21 +0800
+Subject: [PATCH] how to use func addr to control printk, based on change m to
+ y, include depends.
+
+Change-Id: Ic997a6d509f90531ac53ae552a10335c5e2e58cf
+Signed-off-by: Qiyuan Pu <puqiyuan@loongson.cn>
+---
+ drivers/scsi/qla2xxx/qla_isr.c      | 4 ++--
+ drivers/scsi/qla2xxx/qla_isr_addr.h | 1 +
+ kernel/irq/handle.c                 | 5 ++++-
+ 3 files changed, 7 insertions(+), 3 deletions(-)
+ create mode 100644 drivers/scsi/qla2xxx/qla_isr_addr.h
+
+diff --git a/drivers/scsi/qla2xxx/qla_isr.c b/drivers/scsi/qla2xxx/qla_isr.c
+index 14dd657a642e..44f9379db7e2 100644
+--- a/drivers/scsi/qla2xxx/qla_isr.c
++++ b/drivers/scsi/qla2xxx/qla_isr.c
+@@ -16,7 +16,7 @@
+ #include <scsi/scsi_eh.h>
+ #include <scsi/fc/fc_fs.h>
+ #include <linux/nvme-fc-driver.h>
+-
++#include "qla_isr_addr.h"
+ static void qla2x00_mbx_completion(scsi_qla_host_t *, uint16_t);
+ static void qla2x00_status_entry(scsi_qla_host_t *, struct rsp_que *, void *);
+ static void qla2x00_status_cont_entry(struct rsp_que *, sts_cont_entry_t *);
+@@ -3249,7 +3249,7 @@ qla24xx_msix_rsp_q(int irq, void *dev_id)
+ 
+ 	return IRQ_HANDLED;
+ }
+-
++unsigned long qla24xx_msix_rsp_q_addr = (unsigned long)qla24xx_msix_rsp_q;
+ static irqreturn_t
+ qla24xx_msix_default(int irq, void *dev_id)
+ {
+diff --git a/drivers/scsi/qla2xxx/qla_isr_addr.h b/drivers/scsi/qla2xxx/qla_isr_addr.h
+new file mode 100644
+index 000000000000..2609bfbec63b
+--- /dev/null
++++ b/drivers/scsi/qla2xxx/qla_isr_addr.h
+@@ -0,0 +1 @@
++extern unsigned long qla24xx_msix_rsp_q_addr;
+diff --git a/kernel/irq/handle.c b/kernel/irq/handle.c
+index 38554bc35375..141e36333d3d 100644
+--- a/kernel/irq/handle.c
++++ b/kernel/irq/handle.c
+@@ -13,7 +13,7 @@
+ #include <linux/sched.h>
+ #include <linux/interrupt.h>
+ #include <linux/kernel_stat.h>
+-
++#include "../../drivers/scsi/qla2xxx/qla_isr_addr.h"
+ #include <trace/events/irq.h>
+ 
+ #include "internals.h"
+@@ -147,6 +147,9 @@ irqreturn_t __handle_irq_event_percpu(struct irq_desc *desc, unsigned int *flags
+ 
+ 		trace_irq_handler_entry(irq, action);
+ 		res = action->handler(irq, action->dev_id);
++		if ((unsigned long)action->handler == qla24xx_msix_rsp_q_addr)
++			printk("func chain interrupt call qla24xx_msix_rsp_q_addr: %lx jiff: %lu irq: %d\n",
++				   qla24xx_msix_rsp_q_addr, jiffies, irq);
+ 		trace_irq_handler_exit(irq, action, res);
+ 
+ 		if (WARN_ONCE(!irqs_disabled(),"irq %u handler %pF enabled interrupts\n",
+-- 
+2.27.0
+
