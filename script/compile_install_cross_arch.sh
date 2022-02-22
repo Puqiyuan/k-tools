@@ -33,7 +33,7 @@ pwd_script=`pwd`
 	make ARCH=$arch CROSS_COMPILE=$toolchain -j$5 LOCALVERSION=$version_str
 	rm -rf $3/mod
 	mkdir $3/mod
-	make modules_install INSTALL_MOD_PATH=$3/mod -j32
+	make modules_install INSTALL_MOD_PATH=$3/mod -j$5
 	cd $3/mod/lib/modules/
 	if [ "$#" -eq 9 ]; then
 	    tar -cvzf $3/mod.tar.gz 4.19.190-pqy-$9
