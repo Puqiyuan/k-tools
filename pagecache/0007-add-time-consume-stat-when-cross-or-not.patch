@@ -1,0 +1,75 @@
+From 364b375bbbff206be054c2963c71a35e7c1f1f94 Mon Sep 17 00:00:00 2001
+From: Qiyuan Pu <puqiyuan@loongson.cn>
+Date: Sat, 19 Feb 2022 13:54:04 +0800
+Subject: [PATCH 7/7] add time consume stat when cross or not
+
+Change-Id: I61e15707f79105f3588407bb4980457520284235
+Signed-off-by: Qiyuan Pu <puqiyuan@loongson.cn>
+---
+ lib/iov_iter.c | 37 ++++++++++++++++++-------------------
+ 1 file changed, 18 insertions(+), 19 deletions(-)
+
+diff --git a/lib/iov_iter.c b/lib/iov_iter.c
+index b9d2011..362debd 100644
+--- a/lib/iov_iter.c
++++ b/lib/iov_iter.c
+@@ -143,9 +143,9 @@ static int copyout(void __user *to, const void *from, size_t n)
+ extern struct page *walk_page_table_one_addr(unsigned long addr);
+ static int copyin(void *to, const void __user *from, size_t n)
+ {
+-	//char *p = to;
+-	static unsigned long init_jiff, output, flag, utot_cnt[4096], umiss[4096], u_map[4096][8], write_op_map[4096][8];
+-	unsigned long i;
++	static unsigned long init_jiff, output, flag, utot_cnt[4096], umiss[4096], time_stat[4096][4];
++	unsigned long i, end, start;
++
+ 	if (strcmp(current->comm, target_task) == 0)
+ 		utot_cnt[current->pid]++;
+ 	if (strcmp(current->comm, target_task) == 0 && !flag) {
+@@ -158,28 +158,27 @@ static int copyin(void *to, const void __user *from, size_t n)
+ 			if (utot_cnt[i] != 0) {
+ 				printk("pid: %lu umiss: %lu\n", i, umiss[i]);
+ 				printk("pid: %lu utotal:%lu\n", i, utot_cnt[i]);
+-				/*
+-				printk("process %lu user buffer page distributed:\n", i);
+-				for (j = 0; j < 8; j++)
+-					printk("%lu\n", u_map[i][j]);
+-				printk("\n");
+-				printk("process %lu on which nodes the write operation runs:\n", i);
+-				for (j = 0; j < 8; j++)
+-					printk("%lu\n", write_op_map[i][j]);
+-					printk("\n");
+-				*/
++				printk("pid: %lu pgc time_stat: %lu %lu %lu %lu\n",
++					   i, time_stat[i][0], time_stat[i][1], time_stat[i][2], time_stat[i][3]);
+ 			}
+ 		}
+ 	}
+ 	if (access_ok(VERIFY_READ, from, n)) {
+ 		kasan_check_write(to, n);
++		start = get_cycles();
+ 		n = raw_copy_from_user(to, from, n);
+-	}
+-	if (strcmp(current->comm, target_task) == 0) {
+-		++u_map[current->pid][page_to_nid(walk_page_table_one_addr((unsigned long)from))];
+-		if (page_to_nid(walk_page_table_one_addr((unsigned long)from)) != (smp_processor_id() / 4))
+-			umiss[current->pid]++;
+-		++write_op_map[current->pid][smp_processor_id() / 4];
++		end = get_cycles();
++		if (strcmp(current->comm, target_task) == 0) {
++			if (page_to_nid(virt_to_page(to)) != (smp_processor_id() / 4)) {
++				time_stat[current->pid][0] += end - start;
++				time_stat[current->pid][1]++;
++			}
++			else {
++				time_stat[current->pid][2] += end - start;
++				time_stat[current->pid][3]++;
++			}
++
++		}
+ 	}
+ 
+ 	return n;
+-- 
+1.8.3.1
+

@@ -1,0 +1,51 @@
+From 7f9ce94ababef1156dc038f03e667bbc093726d0 Mon Sep 17 00:00:00 2001
+From: Qiyuan Pu <puqiyuan@loongson.cn>
+Date: Tue, 28 Dec 2021 14:09:02 +0800
+Subject: [PATCH 4/7] how long when running select_task_rq_fair again
+
+Change-Id: Ib7569d0b647425e542fb7f84155418772bac146d
+Signed-off-by: Qiyuan Pu <puqiyuan@loongson.cn>
+---
+ kernel/sched/fair.c | 26 ++++++++++++++++++++++++++
+ 1 file changed, 26 insertions(+)
+
+diff --git a/kernel/sched/fair.c b/kernel/sched/fair.c
+index 11e6732..3810b1e 100644
+--- a/kernel/sched/fair.c
++++ b/kernel/sched/fair.c
+@@ -6438,6 +6438,32 @@ static int wake_cap(struct task_struct *p, int cpu, int prev_cpu)
+ 	int new_cpu = prev_cpu;
+ 	int want_affine = 0;
+ 	int sync = (wake_flags & WF_SYNC) && !(current->flags & PF_EXITING);
++
++	static unsigned long prev_jiff, space, cnt_zero, cnt_one, cnt_two, init_jiff, output, flag;
++
++	if (strcmp(p->comm, "fstime") == 0 && !flag) {
++		flag = 1;
++		init_jiff = jiffies;
++	}
++	if (jiffies > init_jiff + 180 * 250 && !output && init_jiff != 0) {
++		output = 1;
++		trace_printk("cnt zero:\t%lu\n", cnt_zero);
++		trace_printk("cnt one:\t%lu\n", cnt_one);
++		trace_printk("cnt two:\t%lu\n", cnt_two);
++	}
++	if (strcmp(p->comm, "fstime") == 0 && prev_jiff != 0) {
++		space = jiffies - prev_jiff;
++		if (space != 0 && space != 1 && space != 2)
++			trace_printk("jiff space:\t%lu\n", space);
++		if (space == 0)
++			cnt_zero++;
++		if (space == 1)
++			cnt_one++;
++		if (space == 2)
++			cnt_two++;
++	}
++	if (prev_jiff != jiffies)
++		prev_jiff = jiffies;
+ #ifdef __loongarch__
+ 	struct thread_info *thread;
+ #endif
+-- 
+1.8.3.1
+

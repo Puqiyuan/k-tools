@@ -1,0 +1,73 @@
+From 02ffa3653c31f33411ddf1a8d7bf7c11656d26c2 Mon Sep 17 00:00:00 2001
+From: Qiyuan Pu <puqiyuan@loongson.cn>
+Date: Mon, 27 Dec 2021 19:37:47 +0800
+Subject: [PATCH 3/7] add write ops stat
+
+Change-Id: I898471da03ea016f5d11ef3a3a2da40fae7dc423
+Signed-off-by: Qiyuan Pu <puqiyuan@loongson.cn>
+---
+ lib/iov_iter.c | 16 +++++++++++++---
+ 1 file changed, 13 insertions(+), 3 deletions(-)
+
+diff --git a/lib/iov_iter.c b/lib/iov_iter.c
+index ef422ca..cb34bbb 100644
+--- a/lib/iov_iter.c
++++ b/lib/iov_iter.c
+@@ -144,7 +144,7 @@ static int copyout(void __user *to, const void *from, size_t n)
+ static int copyin(void *to, const void __user *from, size_t n)
+ {
+ 	char *p = to;
+-	static unsigned long init_jiff, output, flag, tot_cnt, umiss, u_map[8], j;
++	static unsigned long init_jiff, output, flag, tot_cnt, umiss, u_map[8], j, write_map[8];
+ 	if (strcmp(current->comm, target_task) == 0)
+ 		tot_cnt++;
+ 	if (strcmp(current->comm, target_task) == 0 && !flag) {
+@@ -159,6 +159,10 @@ static int copyin(void *to, const void __user *from, size_t n)
+ 		for (j = 0; j < 8; ++j)
+ 			printk("%lu ", u_map[j]);
+ 		printk("\n");
++		printk("write op distributed when access user page:\n");
++		for (j = 0; j < 8; ++j)
++			printk("%lu ", write_map[j]);
++		printk("\n");
+ 	}
+ 	if (access_ok(VERIFY_READ, from, n)) {
+ 		kasan_check_write(to, n);
+@@ -169,6 +173,7 @@ static int copyin(void *to, const void __user *from, size_t n)
+ 		++u_map[page_to_nid(walk_page_table_one_addr((unsigned long)from))];
+ 		if (page_to_nid(walk_page_table_one_addr((unsigned long)from)) != (smp_processor_id() / 4))
+ 			umiss++;
++		++write_map[smp_processor_id() / 4];
+ 	}
+ 
+ 	return n;
+@@ -943,10 +948,11 @@ size_t iov_iter_copy_from_user_atomic(struct page *page,
+ 		struct iov_iter *i, unsigned long offset, size_t bytes)
+ {
+ 	char *kaddr = kmap_atomic(page), *p = kaddr + offset;
+-	static unsigned long init_jiff, output, flag, tot_cnt, kmiss, pc_map[8], j;
++	static unsigned long init_jiff, output, flag, tot_cnt, kmiss, pc_map[8], j, pc_write_map[8];
+ 	if (strcmp(current->comm, target_task) == 0) {
+ 		tot_cnt++;
+ 		++pc_map[page_to_nid(page)];
++		++pc_write_map[smp_processor_id() / 4];
+ 	}
+ 	if (strcmp(current->comm, target_task) == 0 && !flag) {
+ 		flag = 1;
+@@ -960,8 +966,12 @@ size_t iov_iter_copy_from_user_atomic(struct page *page,
+ 		for (j = 0; j < 8; ++j)
+ 			printk("%lu ", pc_map[j]);
+ 		printk("\n");
++		printk("write op distributed when access page cache:\n");
++		for (j = 0; j < 8; ++j)
++			printk("%lu ", pc_write_map[j]);
++		printk("\n");
+ 	}
+-	if (strcmp(current->comm, target_task) == 0 && page_to_nid(page) != smp_processor_id()/ 4)
++	if (strcmp(current->comm, target_task) == 0 && page_to_nid(page) != smp_processor_id() / 4)
+ 		kmiss++;
+ 	if (unlikely(!page_copy_sane(page, offset, bytes))) {
+ 		kunmap_atomic(kaddr);
+-- 
+1.8.3.1
+

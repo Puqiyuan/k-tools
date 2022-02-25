@@ -1,0 +1,77 @@
+From f61b29b05ea3ce68442c30c83ab9b60482ded3a6 Mon Sep 17 00:00:00 2001
+From: Qiyuan Pu <puqiyuan@loongson.cn>
+Date: Sat, 19 Feb 2022 10:51:28 +0800
+Subject: [PATCH 6/7] add write and pagecache distrubted
+
+Change-Id: I57a1a11a88fe5b48156475237cb29975243dd6e0
+Signed-off-by: Qiyuan Pu <puqiyuan@loongson.cn>
+---
+ mm/filemap.c | 45 +++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 45 insertions(+)
+
+diff --git a/mm/filemap.c b/mm/filemap.c
+index f2e7770..8817f8e 100644
+--- a/mm/filemap.c
++++ b/mm/filemap.c
+@@ -3134,6 +3134,47 @@ ssize_t generic_perform_write(struct file *file,
+ 	long status = 0;
+ 	ssize_t written = 0;
+ 	unsigned int flags = 0;
++	static int pgc_map[4096][8], write_op_map[4096][8], j, k;
++	static unsigned long init_jiff, output, flag, no_zeros;
++
++	if (strcmp(current->comm, "fstime") == 0 && !flag) {
++		flag = 1;
++		init_jiff = jiffies;
++	}
++	if (jiffies > init_jiff + 180 * 250 && !output && init_jiff != 0) {
++		output = 1;
++		for (j = 0; j < 4096; j++) {
++			no_zeros = 0;
++			for (k = 0; k < 8; k++) {
++				if (pgc_map[j][k] != 0) {
++					no_zeros = 1;
++					break;
++				}
++			}
++			if (no_zeros) {
++				printk("pgc_map pid: %d\n", j);
++				for (k = 0; k < 8; k++)
++					printk("%d\n", pgc_map[j][k]);
++				printk("\n");
++			}
++		}
++
++		for (j = 0; j < 4096; j++) {
++			no_zeros = 0;
++			for (k = 0; k < 8; k++) {
++				if (write_op_map[j][k] != 0) {
++					no_zeros = 1;
++					break;
++				}
++			}
++			if (no_zeros) {
++				printk("write_op_map pid: %d\n", j);
++				for (k = 0; k < 8; k++)
++					printk("%d\n", write_op_map[j][k]);
++				printk("\n");
++			}
++		}
++	}
+ 
+ 	do {
+ 		struct page *page;
+@@ -3169,6 +3210,10 @@ ssize_t generic_perform_write(struct file *file,
+ 
+ 		status = a_ops->write_begin(file, mapping, pos, bytes, flags,
+ 						&page, &fsdata);
++		if (strcmp(current->comm, "fstime") == 0) {
++			++pgc_map[current->pid][page_to_nid(page)];
++			++write_op_map[current->pid][smp_processor_id() / 4];
++		}
+ 		if (unlikely(status < 0))
+ 			break;
+ 
+-- 
+1.8.3.1
+

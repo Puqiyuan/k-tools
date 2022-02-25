@@ -1,0 +1,115 @@
+From 4c4a856dba2541427c4cc5171559834ef8b52b23 Mon Sep 17 00:00:00 2001
+From: Qiyuan Pu <puqiyuan@loongson.cn>
+Date: Tue, 21 Dec 2021 10:42:22 +0800
+Subject: [PATCH 1/7] count cross node mm access
+
+Change-Id: I5d33bdaed1231dfde91ca096541696aab3029f0c
+Signed-off-by: Qiyuan Pu <puqiyuan@loongson.cn>
+---
+ lib/iov_iter.c | 34 ++++++++++++++++++++++++++++++++++
+ mm/pagewalk.c  | 34 ++++++++++++++++++++++++++++++++++
+ 2 files changed, 68 insertions(+)
+
+diff --git a/lib/iov_iter.c b/lib/iov_iter.c
+index acd7b97..829fec3 100644
+--- a/lib/iov_iter.c
++++ b/lib/iov_iter.c
+@@ -139,12 +139,32 @@ static int copyout(void __user *to, const void *from, size_t n)
+ 	return n;
+ }
+ 
++static char *target_task = "fstime";
++extern struct page *walk_page_table_one_addr(unsigned long addr);
+ static int copyin(void *to, const void __user *from, size_t n)
+ {
++	char *p = to;
++	static unsigned long init_jiff, output, flag, tot_cnt, umiss;
++	if (strcmp(current->comm, target_task) == 0)
++		tot_cnt++;
++	if (strcmp(current->comm, target_task) == 0 && !flag) {
++		flag = 1;
++		init_jiff = jiffies;
++	}
++	if (jiffies > init_jiff + 180 * 250 && !output && init_jiff != 0) {
++		output = 1;
++		printk("write umiss:\t%lu\n", umiss);
++		printk("write total:\t%lu\n", tot_cnt);
++	}
+ 	if (access_ok(VERIFY_READ, from, n)) {
+ 		kasan_check_write(to, n);
+ 		n = raw_copy_from_user(to, from, n);
+ 	}
++	if (*p == 'a' && *(p + 1) == 'a' && *(p + 2) == 'a' && *(p + 3) == 'a' &&
++		*(p + 4) == 'a' && *(p + 5) == 'a' &&
++		page_to_nid(walk_page_table_one_addr((unsigned long)from)) != (smp_processor_id() / 4))
++		umiss++;
++
+ 	return n;
+ }
+ 
+@@ -917,6 +937,20 @@ size_t iov_iter_copy_from_user_atomic(struct page *page,
+ 		struct iov_iter *i, unsigned long offset, size_t bytes)
+ {
+ 	char *kaddr = kmap_atomic(page), *p = kaddr + offset;
++	static unsigned long init_jiff, output, flag, tot_cnt, kmiss;
++	if (strcmp(current->comm, target_task) == 0)
++		tot_cnt++;
++	if (strcmp(current->comm, target_task) == 0 && !flag) {
++		flag = 1;
++		init_jiff = jiffies;
++	}
++	if (jiffies > init_jiff + 180 * 250 && !output && init_jiff != 0) {
++		output = 1;
++		printk("write kmiss:\t%lu\n", kmiss);
++		printk("write total:\t%lu\n", tot_cnt);
++	}
++	if (strcmp(current->comm, target_task) == 0 && page_to_nid(page) != smp_processor_id()/ 4)
++		kmiss++;
+ 	if (unlikely(!page_copy_sane(page, offset, bytes))) {
+ 		kunmap_atomic(kaddr);
+ 		return 0;
+diff --git a/mm/pagewalk.c b/mm/pagewalk.c
+index 3c0930d..a40adf5d 100644
+--- a/mm/pagewalk.c
++++ b/mm/pagewalk.c
+@@ -356,3 +356,37 @@ int walk_page_vma(struct vm_area_struct *vma, struct mm_walk *walk)
+ 		return err;
+ 	return __walk_page_range(vma->vm_start, vma->vm_end, walk);
+ }
++
++struct page *walk_page_table_one_addr(unsigned long addr)
++{
++	pgd_t *pgd;
++    pte_t *ptep, pte;
++    pud_t *pud;
++    pmd_t *pmd;
++
++    struct page *page = NULL;
++    struct mm_struct *mm = current->mm;
++
++    pgd = pgd_offset(mm, addr);
++    if (pgd_none(*pgd) || pgd_bad(*pgd))
++        goto out;
++
++    pud = pud_offset(pgd, addr);
++    if (pud_none(*pud) || pud_bad(*pud))
++        goto out;
++
++    pmd = pmd_offset(pud, addr);
++    if (pmd_none(*pmd) || pmd_bad(*pmd))
++        goto out;
++
++    ptep = pte_offset_map(pmd, addr);
++    if (!ptep)
++        goto out;
++    pte = *ptep;
++
++    page = pte_page(pte);
++	pte_unmap(ptep);
++
++ out:
++    return page;
++}
+-- 
+1.8.3.1
+
