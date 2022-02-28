@@ -1,0 +1,90 @@
+From 72b8812d9b1e7d408152fd970cdc18309037142e Mon Sep 17 00:00:00 2001
+From: Qiyuan Pu <pqy7172@gmail.com>
+Date: Mon, 28 Feb 2022 18:54:55 +0800
+Subject: [PATCH] how often the process access pagecache
+
+Change-Id: Id2d93c8c10b58911d809e91e702606be7bb96726
+Signed-off-by: Qiyuan Pu <pqy7172@gmail.com>
+---
+ include/linux/sched.h |  1 +
+ kernel/fork.c         |  5 +++++
+ kernel/sched/core.c   | 14 +++++++++++++-
+ mm/filemap.c          |  1 +
+ 4 files changed, 20 insertions(+), 1 deletion(-)
+
+diff --git a/include/linux/sched.h b/include/linux/sched.h
+index 80135afc758d..3b9cf95747c9 100644
+--- a/include/linux/sched.h
++++ b/include/linux/sched.h
+@@ -616,6 +616,7 @@ struct task_struct {
+ #ifdef CONFIG_SMP
+ 	struct llist_node		wake_entry;
+ 	int				on_cpu;
++	unsigned long pgc_freq, pgc_jiff;
+ #ifdef CONFIG_THREAD_INFO_IN_TASK
+ 	/* Current CPU: */
+ 	unsigned int			cpu;
+diff --git a/kernel/fork.c b/kernel/fork.c
+index 50cbb4824a20..7b9aa6cb65c0 100644
+--- a/kernel/fork.c
++++ b/kernel/fork.c
+@@ -879,6 +879,11 @@ static struct task_struct *dup_task_struct(struct task_struct *orig, int node)
+ #ifdef CONFIG_MEMCG
+ 	tsk->active_memcg = NULL;
+ #endif
++
++#ifdef CONFIG_SMP
++	tsk->pgc_freq = 0;
++	tsk->pgc_jiff = 0;
++#endif
+ 	return tsk;
+ 
+ free_stack:
+diff --git a/kernel/sched/core.c b/kernel/sched/core.c
+index 013b1c6cb4ed..d49fbc073757 100644
+--- a/kernel/sched/core.c
++++ b/kernel/sched/core.c
+@@ -3038,6 +3038,7 @@ unsigned long long task_sched_runtime(struct task_struct *p)
+  * This function gets called by the timer code, with HZ frequency.
+  * We call it with interrupts disabled.
+  */
++static char *target_task = "execl";
+ void scheduler_tick(void)
+ {
+ 	int cpu = smp_processor_id();
+@@ -3057,8 +3058,19 @@ void scheduler_tick(void)
+ 	rq_unlock(rq, &rf);
+ 
+ 	perf_event_task_tick();
+-
+ #ifdef CONFIG_SMP
++	if (strcmp(curr->comm, target_task) == 0) {
++		if (curr->pgc_jiff == 0)
++			curr->pgc_jiff = jiffies;
++		else {
++			if (jiffies > curr->pgc_jiff + 1 * HZ) {
++				curr->pgc_jiff = jiffies;
++				printk("pid: %d comm: %s pgc_freq: %lu\n", curr->pid, curr->comm, curr->pgc_freq);
++				curr->pgc_freq = 0;
++			}
++		}
++	}
++
+ 	rq->idle_balance = idle_cpu(cpu);
+ 	trigger_load_balance(rq);
+ #endif
+diff --git a/mm/filemap.c b/mm/filemap.c
+index f2e777003b90..db28fa56d946 100644
+--- a/mm/filemap.c
++++ b/mm/filemap.c
+@@ -1616,6 +1616,7 @@ struct page *pagecache_get_page(struct address_space *mapping, pgoff_t offset,
+ 				goto repeat;
+ 		}
+ 	}
++	++current->pgc_freq;
+ 
+ 	return page;
+ }
+-- 
+2.20.1
+
