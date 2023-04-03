@@ -38,7 +38,8 @@ pwd_script=`pwd`
 	kver=`ls`
 	echo kver:$kver
 	if [ "$#" -eq 9 ]; then
-	    tar -cvzf $3/mod.tar.gz $kver
+	    #tar -cvzf $3/mod.tar.gz $kver
+		tar cf - $kver | pigz -p $5 > $3/mod.tar.gz
 	fi
 
 	if [ "$#" -eq 8 ]; then

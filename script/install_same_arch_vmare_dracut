@@ -9,6 +9,7 @@ expect "*?assword:*"
 send -- "$password\r"
 sleep 1
 #sudo tar xvf ~/mod.tar.gz -C /lib/modules -> pigz -dc ~/mod.tar.gz | tar -xf - -C /lib/modules
-send -- "sudo mv ~/initrd-pqy.img /boot; sudo mv ~/vmlinuz /boot/vmlinuz-pqy; sudo mv ~/vmlinux /boot/vmlinux-pqy; sudo rm /lib/modules/*pqy* -rf; sudo tar xvf ~/mod.tar.gz -C /lib/modules; sleep 2; sudo reboot\r\n"
+#send -- "sudo mv ~/initrd-pqy.img /boot; sudo mv ~/vmlinuz /boot/vmlinuz-pqy; sudo mv ~/vmlinux /boot/vmlinux-pqy; sudo rm /lib/modules/*pqy* -rf; sudo tar xvf ~/mod.tar.gz -C /lib/modules; sleep 2; sudo reboot\r\n"
+send -- " mv ~/initrd-pqy.img /boot; mv ~/vmlinuz /boot/vmlinuz-pqy; mv ~/vmlinux /boot/vmlinux-pqy; rm /lib/modules/*pqy* -rf; pigz -dc -p 4 ~/mod.tar.gz |tar -xf - -C /lib/modules; sleep 2; reboot\r\n"
 send -- "exit\r\n"
 expect eof
