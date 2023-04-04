@@ -47,7 +47,7 @@ pwd_script=`pwd`
 	fi
 	cd /lib/modules/
 	res=`ls |grep pqy`
-	rm -rf $res
+	sudo rm -rf $res
 	cd -
 	sudo mv $kver /lib/modules
 	dracut -f --kver $kver ../../../initrd-pqy.img
