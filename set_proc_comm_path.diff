@@ -1,0 +1,51 @@
+diff --git a/fs/Makefile b/fs/Makefile
+index 05f89b5c962f..73b6fe034458 100644
+--- a/fs/Makefile
++++ b/fs/Makefile
+@@ -16,7 +16,7 @@ obj-y :=	open.o read_write.o file_table.o super.o \
+ 		pnode.o splice.o sync.o utimes.o d_path.o \
+ 		stack.o fs_struct.o statfs.o fs_pin.o nsfs.o \
+ 		fs_types.o fs_context.o fs_parser.o fsopen.o init.o \
+-		kernel_read_file.o mnt_idmapping.o remap_range.o
++		kernel_read_file.o mnt_idmapping.o remap_range.o ktime_snoop.o
+ 
+ ifeq ($(CONFIG_BLOCK),y)
+ obj-y +=	buffer.o mpage.o
+diff --git a/fs/exec.c b/fs/exec.c
+index 7c44d0c65b1b..e3a53a3e198c 100644
+--- a/fs/exec.c
++++ b/fs/exec.c
+@@ -651,6 +651,8 @@ static int copy_strings_kernel(int argc, const char *const *argv,
+ 			       struct linux_binprm *bprm)
+ {
+ 	while (argc-- > 0) {
++		printk("pqy log func argc: %d argv[argc]: %lx argv[argc]str: %s argv: %lx argvstr: %s\n", 
++			argc, (unsigned long)argv[argc], argv[argc], (unsigned long)argv, (char *)argv);
+ 		int ret = copy_string_kernel(argv[argc], bprm);
+ 		if (ret < 0)
+ 			return ret;
+@@ -1234,6 +1236,8 @@ void __set_task_comm(struct task_struct *tsk, const char *buf, bool exec)
+ 	perf_event_comm(tsk, exec);
+ }
+ 
++void ktime_snoop_exit_module(void);
++void ktime_snoop_init_module(void);
+ /*
+  * Calling this is the point of no return. None of the failures will be
+  * seen by userspace since either the process is already taking a fatal
+@@ -1361,7 +1365,14 @@ int begin_new_exec(struct linux_binprm * bprm)
+ 
+ 	perf_event_exec();
+ 	__set_task_comm(me, kbasename(bprm->filename), true);
+-
++	if (me && strstr(me->comm, "pqy-start")) {
++		printk("pqy log func: %s line: %d comm: %s\n", __func__, __LINE__, me->comm);
++		ktime_snoop_init_module();
++	}
++	if (me && strstr(me->comm, "pqy-end")) {
++		printk("pqy log func: %s line: %d comm: %s\n", __func__, __LINE__, me->comm);
++		ktime_snoop_exit_module();
++	}
+ 	/* An exec changes our domain. We are no longer part of the thread
+ 	   group */
+ 	WRITE_ONCE(me->self_exec_id, me->self_exec_id + 1);
