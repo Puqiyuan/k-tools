@@ -8,7 +8,7 @@ echo $4 #core numbers
 cd $2
 localversion_str=`git log |head -1 |awk '{print $2}' |head -c 10`
 
-cd -
+cd ~/kernel_debug_tools/script
 input=$1
 cnt=1
 tot=`cat $1 |wc -l`
@@ -18,9 +18,9 @@ do
 	ip=`echo $line |awk '{print $2}'`
 	passwd=`echo $line |awk '{print $3}'`
 	if [[ $cnt -ne 1 ]]; then
-		./compile_install_same_arch_vmare_dracut.sh $username $ip $2 $3 $4 $passwd $cnt $tot $localversion_str
+		./compile_install_same_arch_vmware_dracut.sh $username $ip $2 $3 $4 $passwd $cnt $tot $localversion_str
 	else
-		./compile_install_same_arch_vmare_dracut.sh $username $ip $2 $3 $4 $passwd $cnt $tot $localversion_str
+		./compile_install_same_arch_vmware_dracut.sh $username $ip $2 $3 $4 $passwd $cnt $tot $localversion_str
 	fi
 	cnt=$(($cnt+1))
 done < "$input"

@@ -2,6 +2,7 @@
 set username [lindex $argv 0];
 set ip [lindex $argv 1];
 set password [lindex $argv 2];
+set kver [lindex $argv 3];
 
 set timeout 600
 spawn ssh -o StrictHostKeyChecking=no $username@$ip
@@ -10,6 +11,6 @@ send -- "$password\r"
 sleep 1
 #sudo tar xvf ~/mod.tar.gz -C /lib/modules -> pigz -dc ~/mod.tar.gz | tar -xf - -C /lib/modules
 #send -- "sudo mv ~/initrd-pqy.img /boot; sudo mv ~/vmlinuz /boot/vmlinuz-pqy; sudo mv ~/vmlinux /boot/vmlinux-pqy; sudo rm /lib/modules/*pqy* -rf; sudo tar xvf ~/mod.tar.gz -C /lib/modules; sleep 2; sudo reboot\r\n"
-send -- " mv ~/initrd-pqy.img /boot; mv ~/vmlinuz /boot/vmlinuz-pqy; mv ~/vmlinux /boot/vmlinux-pqy; rm /lib/modules/*pqy* -rf; pigz -dc -p 4 ~/mod.tar.gz |tar -xf - -C /lib/modules; sleep 2; reboot\r\n"
+send -- "sudo mv ~/vmlinuz /boot/vmlinuz-pqy; sudo rm /lib/modules/*pqy* -rf; pigz -dc -p 4 ~/mod.tar.gz |tar -xf - -C /lib/modules; dracut -f --kver $kver /boot/initrd-pqy.img; sleep 2; sudo reboot\r\n"
 send -- "exit\r\n"
 expect eof

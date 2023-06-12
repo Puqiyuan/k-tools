@@ -50,14 +50,14 @@ pwd_script=`pwd`
 	sudo rm -rf $res
 	cd -
 	sudo mv $kver /lib/modules
-	dracut -f --kver $kver ../../../initrd-pqy.img
+	#dracut -f --kver $kver ../../../initrd-pqy.img
 #fi
 
 cd
 
 expect << __EOF
 set timeout 600
-spawn scp -r -o StrictHostKeyChecking=no $3/vmlinuz $3/vmlinux $3/initrd-pqy.img $3/mod.tar.gz $HOME/kernel_debug_tools/script/startup.sh $1@$2:~
+spawn scp -r -o StrictHostKeyChecking=no $3/vmlinuz $3/vmlinux $3/mod.tar.gz $HOME/kernel_debug_tools/script/startup.sh $1@$2:~
 expect "*password:"
 send "$6\r"
 expect of
@@ -69,4 +69,4 @@ then
 	echo nothing
 fi
 cd $pwd_script
-./install_same_arch_vmare_dracut $1 $2 $6
+./install_same_arch_vmware_dracut $1 $2 $6 $kver
