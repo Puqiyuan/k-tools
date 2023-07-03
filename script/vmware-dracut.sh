@@ -1,5 +1,9 @@
 #!/bin/bash
 #usage: ./compile_install_from_file_same_arch.sh file_of_remote_info
+#example 1, uname -r: 4.18.0-147.5.1.el8_1.5es.14.x86_64
+#        time ~/kernel_debug_tools/script/vmware-dracut.sh ~/kernel_debug_tools/script/machine_info/sandbox ~/work/escore_kernel_source pqy_147_el8_defconfig 16 -147.5.1.el8_1.5es.14.x86_64
+#example 2, unamr -r: 4.18.0-pqy-4520d5da0a
+#         time ~/kernel_debug_tools/script/vmware-dracut.sh ~/kernel_debug_tools/script/machine_info/sandbox ~/work/escore_kernel_source pqy_147_el8_defconfig 16 NULL
 echo $1 #file that store remote machine info formate: username ip passwd
 echo $2 #where is kernel source
 echo $3 #kernel config
