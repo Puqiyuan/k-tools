@@ -11,6 +11,7 @@ echo $4 #core numbers
 echo $5 #kernel version
 
 cd $2
+cscope -Rb &
 localversion_str=`git log |head -1 |awk '{print $2}' |head -c 10`
 
 cd ~/kernel_debug_tools/script
