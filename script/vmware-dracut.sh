@@ -14,7 +14,7 @@ cd $2
 cscope -Rb &
 localversion_str=`git log |head -1 |awk '{print $2}' |head -c 10`
 
-cd ~/kernel_debug_tools/script
+cd ~/k-tools/script
 input=$1
 cnt=1
 tot=`cat $1 |wc -l`
