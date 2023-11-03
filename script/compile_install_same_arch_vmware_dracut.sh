@@ -8,7 +8,7 @@ echo $6 #password
 echo $7 #how many times compile
 echo $8 #tot times
 echo $9 #git commit
-echo ${10} #default kernel version 
+echo ${10} #default kernel version
 
 version_str=-pqy
 
