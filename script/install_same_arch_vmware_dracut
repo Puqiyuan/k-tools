@@ -11,6 +11,6 @@ send -- "$password\r"
 sleep 1
 #sudo tar xvf ~/mod.tar.gz -C /lib/modules -> pigz -dc ~/mod.tar.gz | tar -xf - -C /lib/modules
 #send -- "sudo mv ~/initrd-pqy.img /boot; sudo mv ~/vmlinuz /boot/vmlinuz-pqy; sudo mv ~/vmlinux /boot/vmlinux-pqy; sudo rm /lib/modules/*pqy* -rf; sudo tar xvf ~/mod.tar.gz -C /lib/modules; sleep 2; sudo reboot\r\n"
-send -- "sudo mv ~/vmlinuz /boot/vmlinuz-pqy; sudo rm /lib/modules/*pqy* -rf; pigz -dc -p 32 ~/mod.tar.gz |tar -xf - -C /lib/modules; dracut -f --kver $kver /boot/initrd-pqy.img; sleep 2; sudo reboot\r\n"
+send -- "sudo mv ~/vmlinuz /boot/vmlinuz-pqy; sudo rm /lib/modules/*pqy* -rf; pigz -dc -p 32 ~/mod.tar.gz |sudo tar -xf - -C /lib/modules; sudo dracut -f --kver $kver /boot/initrd-pqy.img; sleep 2; sudo reboot\r\n"
 send -- "exit\r\n"
 expect eof

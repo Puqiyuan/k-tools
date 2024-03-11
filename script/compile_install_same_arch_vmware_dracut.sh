@@ -29,15 +29,15 @@ pwd_script=`pwd`
 echo version_str:$version_str
 cd $3
 make $4
-make -j$5 LOCALVERSION=$version_str
+make -j$nproc LOCALVERSION=$version_str
 rm -rf $3/mod
 mkdir $3/mod
-make modules_install INSTALL_MOD_PATH=$3/mod -j$5
+make modules_install INSTALL_MOD_PATH=$3/mod -j$nproc
 cp arch/x86/boot/bzImage ./vmlinuz
 cd $3/mod/lib/modules/
 kver=`ls`
 echo kver:$kver
-tar cf - $kver | pigz -p $5 > $3/mod.tar.gz
+tar cf - $kver | pigz -p 32 > $3/mod.tar.gz
 cd
 
 expect << __EOF
