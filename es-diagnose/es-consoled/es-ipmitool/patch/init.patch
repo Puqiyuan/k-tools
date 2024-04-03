@@ -1,0 +1,63 @@
+diff --git a/lib/ipmi_sol.c b/lib/ipmi_sol.c
+index 8e7285c..680b110 100644
+--- a/lib/ipmi_sol.c
++++ b/lib/ipmi_sol.c
+@@ -1255,6 +1255,10 @@ printSolEscapeSequences(struct ipmi_intf * intf)
+ static void
+ output(struct ipmi_rs * rsp)
+ {
++	static FILE *file;
++
++	if (!file)
++		file = fopen("/var/log/es_console_log.txt", "a");
+ 	/* Add checks to make sure it is actually SOL data, in general I see
+ 	 * outside code mostly trying to guard against this happening, but
+ 	 * some places fail to do so, so I do so here to make sure nothing gets
+@@ -1271,9 +1275,9 @@ output(struct ipmi_rs * rsp)
+ 		int i;
+ 
+ 		for (i = 0; i < rsp->data_len; ++i)
+-			putc(rsp->data[i], stdout);
++			putc(rsp->data[i], file);
+ 
+-		fflush(stdout);
++		fflush(file);
+ 	}
+ }
+ 
+@@ -1551,7 +1555,6 @@ ipmi_sol_red_pill(struct ipmi_intf * intf, int instance)
+ 	while (! bShouldExit)
+ 	{
+ 		FD_ZERO(&read_fds);
+-		FD_SET(0, &read_fds);
+ 		FD_SET(intf->fd, &read_fds);
+ 
+ 		if (!ipmi_oem_active(intf,"i82571spt"))
+diff --git a/src/ipmitool.c b/src/ipmitool.c
+index 3ee8b50..1d9ead2 100644
+--- a/src/ipmitool.c
++++ b/src/ipmitool.c
+@@ -33,6 +33,7 @@
+  * EVEN IF SUN HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
+  */
+ 
++#include <signal.h>
+ #include <ipmitool/ipmi.h>
+ #include <ipmitool/ipmi_intf.h>
+ #include <ipmitool/ipmi_main.h>
+@@ -131,7 +132,15 @@ int
+ main(int argc, char ** argv)
+ {
+ 	int rc;
++	sigset_t sig_set;
+ 
++	sigemptyset(&sig_set);
++	sigaddset(&sig_set, SIGTERM);
++	sigaddset(&sig_set, SIGCHLD);
++	sigaddset(&sig_set, SIGTSTP);
++	sigaddset(&sig_set, SIGTTOU);
++	sigaddset(&sig_set, SIGTTIN);
++	sigprocmask(SIG_BLOCK, &sig_set, NULL);
+ 	rc = ipmi_main(argc, argv, ipmitool_cmd_list, NULL);
+ 
+ 	if (rc < 0)

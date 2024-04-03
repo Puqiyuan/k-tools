@@ -1,0 +1,20 @@
+pci_conf1_read 223 223 NULL 2000000000
+pci_conf1_read 209 209 NULL 2000000000
+pci_conf1_read 187 187 NULL 2000000000
+pci_conf1_read 82 82 NULL 2000000000
+pci_conf1_read 133 133 NULL 2000000000
+pci_conf1_read 0 174 NULL 2000000000
+pci_wait_cfg 0 280 NULL 2000000000
+pci_read_config 544 544 NULL 2000000000
+pci_read_config 0 351 NULL 2000000000
+pci_conf1_write 82 82 NULL 2000000000
+pci_conf1_write 133 133 NULL 2000000000
+pci_conf1_write 189 189 NULL 2000000000
+pci_conf1_write 207 207 NULL 2000000000
+pci_conf1_write 217 217 NULL 2000000000
+pci_conf1_write 0 174 NULL 2000000000
+pci_write_config 446 446 NULL 2000000000
+pci_write_config 0 164 NULL 2000000000
+multi_cpu_stop 67 67 NULL 2000000000
+multi_cpu_stop 0 166 NULL 2000000000
+
