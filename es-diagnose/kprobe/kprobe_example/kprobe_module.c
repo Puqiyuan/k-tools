@@ -1,13 +1,22 @@
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/kprobes.h>
+#include <linux/printk.h>
 
 static struct kprobe kp;
 
 /* kprobe pre_handler: called just before the probed instruction is executed */
 int handler_pre(struct kprobe *p, struct pt_regs *regs)
 {
-    printk(KERN_INFO "Hello\n");
+	char *ptr = (char*)1234;
+    //printk(KERN_INFO "Hello\n");
+	/*
+	printk("bio: %lx bytes: %lu\n", regs->di, regs->si);
+	printk("bio: %lx bytes: %lu\n", regs->di, regs->si);
+	printk("bio: %lx bytes: %lu\n", regs->di, regs->si);
+	*/
+	//trigger crash, in crash get regs->di and others
+	printk("char: %c\n", *ptr);
     return 0;
 }
 
@@ -31,7 +40,7 @@ static int __init kprobe_init(void)
     kp.pre_handler = handler_pre;
     kp.post_handler = handler_post;
     kp.fault_handler = handler_fault;
-    kp.addr = (kprobe_opcode_t *)kallsyms_lookup_name("ksys_read");
+    kp.addr = (kprobe_opcode_t *)kallsyms_lookup_name("bio_advance");
 	//kp.symbol_name = "sys_read";
 
 	if (!kp.addr) {
