@@ -1,0 +1,4 @@
+#!/bin/bash
+/usr/bin/echo ================================ >> ./ktime_snoop.txt
+/usr/bin/date >> ./ktime_snoop.txt
+/usr/bin/dmesg >> ./ktime_snoop.txt

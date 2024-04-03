@@ -1,0 +1,2 @@
+1, sudo cp save_dmesg /usr/bin
+2, sudo insmod ktime_snoop.ko file_name="./timing.txt"
