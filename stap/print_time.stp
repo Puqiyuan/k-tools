@@ -11,6 +11,7 @@ probe begin {
 // run_timer_softirq backlist
 // blk_done_softirq backlist
 // irq_poll_softirq backlist
+// WARNING: tasklet_action_common maybe bug because tasklet_action_common.isra.2 when enter but return with tasklet_action
 probe module("ipmi_msghandler").function("ipmi_free_recv_msg").call,
       module("ipmi_msghandler").function("acquire_ipmi_user").call,
       module("ipmi_devintf").function("file_receive_handler").call,
