@@ -1,0 +1,60 @@
+#!/usr/bin/env stap
+
+global target_pid
+
+probe begin {
+    printf("Starting to trace udevadm...\n")
+}
+
+probe kernel.function("sock_poll").return {
+    if (execname() == "udevadm") {
+	printf("sock_poll returned: 0x%x\n", $return)
+    }
+}
+
+probe kernel.function("vfs_poll") {
+    if (execname() == "udevadm") {
+	printf("udevadm called vfs_poll(pid=%d) file: %p\n", pid(), $file)
+    }
+}
+
+probe kernel.function("do_sys_poll") {
+    if (execname() == "udevadm") {
+        printf("udevadm called do_sys_poll(pid=%d) timespec64: %p\n", pid(), $end_time)
+    }
+}
+
+probe kernel.function("poll_select_set_timeout") {
+    if (execname() == "udevadm") {
+        printf("udevadm called poll_select_set_timeout(pid=%d) sec: %d nsec: %d\n", pid(), $sec, $nsec)
+    }
+}
+
+
+probe kernel.function("do_poll") {
+    if (execname() == "udevadm") {
+        printf("udevadm called do_poll(pid=%d) timespec64: %p\n", pid(), $end_time)
+    }
+}
+
+probe kernel.function("hrtimer_sleeper_start_expires") {
+    if (execname() == "udevadm") {
+        printf("udevadm called hrtimer_sleeper_start_expires(pid=%d) sl=%p\n", pid(), $sl)
+    }
+}
+
+probe kernel.function("schedule_hrtimeout_range_clock") {
+    if (execname() == "udevadm") {
+        printf("udevadm called schedule_hrtimeout_range_clock(pid=%d) expires=%p\n", pid(), $expires)
+    }
+}
+
+probe kernel.function("poll_schedule_timeout") {
+    if (execname() == "udevadm") {
+        printf("udevadm called poll_schedule_timeout(pid=%d) expires=%p\n", pid(), $expires)
+    }
+}
+
+probe end {
+    printf("Tracing stopped.\n")
+}
